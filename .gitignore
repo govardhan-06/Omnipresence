@@ -1,3 +1,5 @@
 sentinel360/
 Sentinel360.egg-info/
 __pycache__
+logs/
+.env

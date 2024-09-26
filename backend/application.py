@@ -6,6 +6,7 @@ import sys,uvicorn
 from backend.src.utils.exception import customException
 from backend.src.utils.logger import logging
 from starlette.responses import JSONResponse
+from backend.src.supabase.config import Supabase
 
 app = FastAPI()
 
@@ -32,6 +33,17 @@ async def create_user(firstName:str,lastName:str,phone:str,sex:str,emer_num1:str
     '''
     try:
         logging.info("Getting the user details...")
+        supabase=Supabase()
+        user={
+            "first_name":firstName,
+            "last_name":lastName,
+            "phone":phone,
+            "sex":sex,
+            "emer_num_1":emer_num1,
+            "emer_num_2":emer_num2,
+            "emer_num_3":emer_num3
+        }
+        supabase.insert_data(user)
         return JSONResponse(content={"status":"success","message":"User created successfully"},status_code=200)
 
     except Exception as e:
