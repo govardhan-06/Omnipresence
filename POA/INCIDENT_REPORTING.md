@@ -1,6 +1,6 @@
 # Incident reportting using GraphQL
 
-To be used for setting up the anonymous incident reporting feature. GraphQL is basically a query based language for APIs. The reports will be stored and fetched from supabase which is built on PostgreSQL.
+To be used for setting up the anonymous incident reporting feature. GraphQL is basically a query based language for APIs. The reports will be stored and fetched from supabase which is built on PostgreSQL. The reports must be validated with some parameters so as to prevent false reportings. Possiblities of mixing AI with this.
 
 ## Backend
 
