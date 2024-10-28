@@ -1,14 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys,uvicorn
-from backend.src.utils.exception import customException
-from backend.src.utils.logger import logging
+from src.utils.exception import customException
+from src.utils.logger import logging
 from starlette.responses import JSONResponse
-from backend.src.supabase.config import Supabase
+from src.database.supabase_config import Supabase
+from src.database.firebase_config import Firebase
+from pydantic import BaseModel
+from typing import Optional
+from enum import Enum
 
 app = FastAPI()
+firebase=Firebase()
+supabase=Supabase()
 
 # Configure CORS
 app.add_middleware(
@@ -19,6 +25,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Define the possible incident types
+class IncidentType(str, Enum):
+    harassment = "Harassment"
+    suspicious_activity = "Suspicious Activity"
+    theft_and_vandalism = "Theft and Vandalism"
+    physical_assault = "Physical Assault"
+    emergency_situations = "Emergency Situations"
+    unsafe_conditions = "Unsafe Conditions"
+    public_misconduct = "Public Misconduct"
+    gender_based_violence = "Gender-based Violence"
+    safety_concern = "Safety Concern"
+    others = "Others"
+
+# Define the Incident model
+class Incident(BaseModel):
+    incident_type: IncidentType
+    location: str
+    time_of_incident: str  # Format: YYYY-MM-DD HH:MM
+    description: str
+    urgency_level: Optional[str] = None  # High, Medium, Low
+    witnesses: Optional[str] = None  # Descriptions of witnesses
+    additional_comments: Optional[str] = None  # Any additional comments
+    reported_by: Optional[str] = "anonymous"  # Default to anonymous
+
 @app.get("/")
 async def home():
     '''
@@ -26,28 +56,31 @@ async def home():
     '''
     return RedirectResponse(url="/docs")
 
-@app.post("/create_user")
-async def create_user(firstName:str,lastName:str,phone:str,sex:str,emer_num1:str,emer_num2:str=None,emer_num3:str=None):
+@app.post("/login-or-register")
+async def login_or_register(token:str):
     '''
-    This function is used to handle the user profile setup.
+    This function is used to login or register a user using firebase ID Token.
+    Not Tested
     '''
     try:
-        logging.info("Getting the user details...")
-        supabase=Supabase()
-        user={
-            "first_name":firstName,
-            "last_name":lastName,
-            "phone":phone,
-            "sex":sex,
-            "emer_num_1":emer_num1,
-            "emer_num_2":emer_num2,
-            "emer_num_3":emer_num3
-        }
-        supabase.insert_data(user)
-        return JSONResponse(content={"status":"success","message":"User created successfully"},status_code=200)
-
+        # Check if the token is valid
+        user=firebase.verify_user_token(token)
+        response=supabase.fetch_user_data(user["uid"])
+        if response:
+            return JSONResponse(content={"message": "User verified successfully"}, status_code=200)
+        else:
+            # If the user does not exist, create a new user
+            supabase.insert_user_data(user["uid"],user["email"])
+            return JSONResponse(content={"message": "User created successfully"}, status_code=200)
+    
+    except ValueError:
+        # This could happen if the token is invalid or expired
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
     except Exception as e:
-        raise customException(e,sys)
+        # Log the exception for debugging
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 if __name__=="__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
