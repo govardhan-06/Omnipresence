@@ -51,6 +51,40 @@ class Supabase:
         except:
             logging.error(f"Error fetching user data from supabase.")
             return None
+    
+    def insert_ipfs_hash(self,hash):
+        '''
+        Insert ipfs hash into supabase
+        '''
+        try:
+            data={
+                "hash":hash
+            }
+            response = (self.supabase.table("incident_reporting")
+                        .insert(data)
+                        .execute()
+                        )
+            logging.info(f"Inserted data into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting data into supabase: {e}")
+            return None
+    
+    def retrieve_hash(self):
+        '''
+        Retrieve ipfs hash from supabase
+        '''
+        try:
+            response = (
+                        self.supabase.table("incident_reporting")
+                        .select("*")
+                        .execute()
+                        )
+            logging.info(f"Fetched hashes from supabase.")
+            return response
+        except:
+            logging.error(f"Error fetching hashes from supabase.")
+            return None
 
 # Module testing
 if __name__=="__main__":
