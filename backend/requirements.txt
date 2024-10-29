@@ -3,4 +3,6 @@ uvicorn
 python-dotenv
 firebase-admin
 ipfsapi
+geopy
+opencage
 # -e .
