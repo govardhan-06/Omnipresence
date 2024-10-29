@@ -52,6 +52,41 @@ class Supabase:
             logging.error(f"Error fetching user data from supabase.")
             return None
     
+    def insert_emergency_contact_hash(self,uid,hash):
+        '''
+        Insert emergency contact ipfs hash into supabase
+        '''
+        try:
+            data={
+                "emergency_contacts":hash
+            }
+            response = (self.supabase.table("user")
+                        .update(data)
+                        .eq("user_id", uid)
+                        .execute()
+                        )
+            logging.info(f"Inserted contact hash into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting contact hash into supabase: {e}")
+            return None
+    
+    def get_emergency_contact_hash(self,uid):
+        '''
+        Retrieve emergency contact ipfs hash into supabase
+        '''
+        try:
+            response = (self.supabase.table("user")
+                        .select("emergency_contacts")
+                        .eq("user_id", uid)
+                        .execute()
+                        )
+            logging.info(f"Inserted contact hash into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting contact hash into supabase: {e}")
+            return None
+    
     def insert_ipfs_hash(self,hash):
         '''
         Insert ipfs hash into supabase
