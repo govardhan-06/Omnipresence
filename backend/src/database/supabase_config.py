@@ -200,6 +200,8 @@ if __name__=="__main__":
     print(response)
     response=supabase.fetch_user_data("qweLeZ0DO6Z0qtbIs3Ha6eV4fSV2")
     print(response)
+    response=supabase.get_geofence()
+    print(response)
 
 
     

@@ -13,11 +13,13 @@ from typing import Optional
 from enum import Enum
 import ipfshttpclient, json, requests
 from src.geofences import is_within_geofence, has_alert_been_sent, mark_alert_as_sent, get_lat_long_opencage
+from src.safe_route import OpenRouteService
 from typing import List
 
 app = FastAPI()
 firebase=Firebase()
 supabase=Supabase()
+ors=OpenRouteService()
 
 # Configure CORS
 app.add_middleware(
@@ -271,6 +273,22 @@ async def get_geofence_coordinates():
     '''
     geofences = supabase.get_geofence()
     return JSONResponse(content={"geofences": geofences}, status_code=200)
+
+@app.get("/safe_route")
+async def safe_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float):
+    """
+    To get a safe route between start and end points.
+    """
+    start_coords = (start_lat, start_lon)
+    end_coords = (end_lat, end_lon)
+    
+    # Get the safest route after removing geofenced coordinates
+    safe_route = ors.get_safest_route(start_coords, end_coords)
+    
+    if not safe_route:
+        raise HTTPException(status_code=404, detail="Safe route could not be found.")
+    
+    return JSONResponse(content={"message":"Shortest route calculated","safe_route":safe_route},status_code=200)
 
 if __name__=="__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
