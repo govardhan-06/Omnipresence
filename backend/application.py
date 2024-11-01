@@ -170,6 +170,9 @@ async def get_family_details(user_id: str):
 
 @app.post("/report-incident")
 async def report_incident(uid:str,incident: Incident):
+    '''
+    Crowdsourcing of incidents
+    '''
     # Convert to JSON string
     data_dict = incident.model_dump()
     location=data_dict["location"]
@@ -294,14 +297,16 @@ async def safe_route(start_lat: float, start_lon: float, end_lat: float, end_lon
 
 @app.post("/sos-trigger")
 async def trigger_sos(user_id: str, latitude:float, longitude:float, username:str, background_tasks: BackgroundTasks):
+    '''
+    Triggers an SOS event.
+    '''
     alert_data={
         "user_id":user_id,
         "latitude":latitude,
         "longitude":longitude,
-        "is_active":"true"
     }
-    sos_alert_id = supabase.insert_sos_alerts(alert_data)
-    print(sos_alert_id)
+    sos_alert_id = (supabase.insert_sos_alerts(alert_data)).data
+    sos_alert_id=sos_alert_id[0]["id"]
     user={
         "user_id":user_id,
         "username":username,
@@ -311,18 +316,19 @@ async def trigger_sos(user_id: str, latitude:float, longitude:float, username:st
     background_tasks.add_task(notify_contacts, user)
     return {"message": "SOS alert triggered", "alert_id": sos_alert_id}
 
-@app.get("/sos-alert/{alert_id}")
-async def get_sos_data(alert_id: int):
+@app.get("/sos-alert/{user_id}/{alert_id}")
+async def get_sos_data(user_id:str, alert_id: int):
     '''
     For Admin
     Retrieves SOS alert data from the Supabase database.
     '''
-    res=supabase.get_sos_alerts(alert_id)
+    res=supabase.get_sos_alerts(alert_id)[0]
+    rec_url=supabase.get_recording_URL(alert_id,user_id)
+    res["stream_url"]=rec_url
     if not res:
         raise HTTPException(status_code=404, detail="No alerts found")
     
     return res
-
 
 @app.websocket("/ws/stream/{user_id}/{alert_id}")
 async def stream_media(websocket: WebSocket, user_id: str, alert_id: int):

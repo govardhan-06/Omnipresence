@@ -14,6 +14,6 @@ async def test_stream(user_id, alert_id):
         print(f"Error streaming data: {e}")
 
 user_id = "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
-alert_id = 1111
+alert_id = 7
 
 asyncio.run(test_stream(user_id, alert_id))

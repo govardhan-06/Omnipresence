@@ -235,8 +235,15 @@ class Supabase:
         except Exception as e:
             print(f"Exception occurred during upload: {e}")
             return 0
-
-
+    
+    def get_recording_URL(self,alert_id,user_id):
+        bucket_name = "sos_recordings"
+        try:
+            res = self.supabase.storage.from_(bucket_name).get_public_url(f'./{user_id}_{alert_id}.mp4')
+            return res
+        except Exception as e:
+            print(f"Exception occurred during retrieval: {e}")
+            return None
 
 # Module testing
 if __name__=="__main__":
