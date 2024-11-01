@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-import sys,uvicorn
+import sys,uvicorn, aiofiles,os
 from src.utils.exception import customException
 from src.utils.logger import logging
 from starlette.responses import JSONResponse
@@ -10,9 +10,11 @@ from src.database.supabase_config import Supabase
 from src.database.firebase_config import Firebase
 from pydantic import BaseModel, ConfigDict,  ValidationError
 from typing import Optional
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 from enum import Enum
 import ipfshttpclient, json, requests
 from src.geofences import is_within_geofence, has_alert_been_sent, mark_alert_as_sent, get_lat_long_opencage
+from src.sos_workflow import notify_contacts
 from src.safe_route import OpenRouteService
 from typing import List
 
@@ -290,6 +292,77 @@ async def safe_route(start_lat: float, start_lon: float, end_lat: float, end_lon
     
     return JSONResponse(content={"message":"Shortest route calculated","safe_route":safe_route},status_code=200)
 
+@app.post("/sos-trigger")
+async def trigger_sos(user_id: str, latitude:float, longitude:float, username:str, background_tasks: BackgroundTasks):
+    alert_data={
+        "user_id":user_id,
+        "latitude":latitude,
+        "longitude":longitude,
+        "is_active":"true"
+    }
+    sos_alert_id = supabase.insert_sos_alerts(alert_data)
+    print(sos_alert_id)
+    user={
+        "user_id":user_id,
+        "username":username,
+        "latitude":latitude,
+        "longitude":longitude
+    }
+    background_tasks.add_task(notify_contacts, user)
+    return {"message": "SOS alert triggered", "alert_id": sos_alert_id}
+
+@app.get("/sos-alert/{alert_id}")
+async def get_sos_data(alert_id: int):
+    '''
+    For Admin
+    Retrieves SOS alert data from the Supabase database.
+    '''
+    res=supabase.get_sos_alerts(alert_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="No alerts found")
+    
+    return res
+
+
+@app.websocket("/ws/stream/{user_id}/{alert_id}")
+async def stream_media(websocket: WebSocket, user_id: str, alert_id: int):
+    """
+    WebSocket endpoint to stream media and upload to Supabase.
+    """
+    await websocket.accept()
+    file_name = f"{user_id}_{alert_id}.mp4"
+    local_path = f"./{file_name}"
+
+    try:
+        # Open a file for writing the incoming stream data
+        async with aiofiles.open(local_path, 'wb') as out_file:
+            while True:
+                try:
+                    data = await websocket.receive_bytes()
+                    await out_file.write(data)
+                except WebSocketDisconnect:
+                    print("WebSocket connection closed.")
+                    break
+    except Exception as e:
+        await websocket.close()
+        return JSONResponse(content={"message": f"Error writing file: {e}"}, status_code=500)
+
+    # Attempt to upload the recording to Supabase after WebSocket closes
+    try:
+        print(f"Attempting to upload {local_path} to Supabase.")
+        upload_success = supabase.upload_recordings(local_path, file_name)
+        if upload_success:
+            os.remove(local_path)  # Delete the local file if uploaded successfully
+            print("Successfully uploaded the file.")
+
+        else:
+            print("Failed to upload the file.")
+    except Exception as e:
+        print(f"Error during upload: {e}")
+    finally:
+        # Close only if the WebSocket connection is open
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()
+
 if __name__=="__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
