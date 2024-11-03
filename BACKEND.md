@@ -2,6 +2,31 @@
 
 This API documentation describes endpoints for the **Omnipresence Project**, a women's safety and empowerment system leveraging AI for real-time analysis and geolocation-based alerting. This FastAPI-based backend is containerized in Docker, making it deployable across various environments.
 
+---
+
+## Features
+- `govardhan06/omnipresence-backend:v1`
+
+### 1. Anonymous Incident Reporting with IPFS Integration
+Users can report incidents anonymously through the backend, ensuring privacy and security. Reports are stored using IPFS (InterPlanetary File System), providing a decentralized and secure way to handle sensitive data without compromising user identity.
+
+### 2. Point-to-Point Safe Routing
+The backend facilitates safe routing by calculating and suggesting the safest paths based on real-time data. Users can input their destination, and the system will provide optimized routes that avoid high-risk areas, ensuring a safer travel experience.
+
+### 3. Emergency Contact Setup
+Users can configure emergency contacts within the application. In case of an emergency, the system can quickly notify these contacts, ensuring rapid communication and support during critical situations.
+
+### 4. WhatsApp API Integration
+The backend integrates with the WhatsApp API, allowing users to send alerts and notifications directly to their contacts via WhatsApp. This feature ensures timely communication in emergencies, leveraging a widely used messaging platform.
+
+### 5. SOS Trigger and Corresponding Chain of Events
+Users can activate an SOS trigger with a simple action. Upon activation, a predefined chain of events is initiated, including notifications to emergency contacts, location sharing, and alerting local authorities if necessary, ensuring immediate assistance.
+
+### 6. Streaming of Video from Phone on SOS Trigger
+In case of an SOS trigger, users can stream live video from their phone's camera to the backend. This feature provides real-time visual information to emergency contacts and responders, enhancing situational awareness and response effectiveness.
+
+---
+
 ### Endpoints
 
 #### 1. **Home Redirect**
