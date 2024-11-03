@@ -4,6 +4,52 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 ---
 
+## Docker Image Setup
+
+This section provides instructions for setting up the Docker environment for the `govardhan06/omnipresence-backend` image. Follow these steps to create a network, pull the necessary images, and run the containers.
+
+### Step 1: Create Docker Network
+
+First, create a Docker network that will allow your containers to communicate with each other:
+
+```bash
+docker network create omnipresence-network
+```
+
+### Step 2: Pull and Run the Omnipresence Backend Image
+
+Next, pull the Omnipresence backend image and run it within the created network:
+
+```bash
+docker pull govardhan06/omnipresence-backend:v1
+docker run --name omnipresence-backend --network omnipresence-network govardhan06/omnipresence-backend:v1
+```
+
+### Step 3: Pull and Run the IPFS Node
+
+Now, you will need to set up an IPFS node for handling anonymous incident reporting. Pull the latest IPFS image and run it in the same network:
+
+```bash
+docker run -d --name ipfs-node --network omnipresence-network -v ipfs_data:/data/ipfs -e IPFS_PROFILE=server ipfs/go-ipfs:latest
+```
+
+### Verification
+
+To verify that both containers are running correctly within the `omnipresence-network`, you can use the following command:
+
+```bash
+docker ps
+```
+
+This will display a list of running containers, including the `omniverse-backend` and `ipfs-node`.
+
+### Notes
+
+- Ensure Docker is installed and running on your machine before executing these commands.
+- The endpoints must be triggered only after setting-up both of these images
+
+---
+
 ## Features
 - `govardhan06/omnipresence-backend:v1`
 
