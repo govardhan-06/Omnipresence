@@ -52,6 +52,41 @@ class Supabase:
             logging.error(f"Error fetching user data from supabase.")
             return None
     
+    def insert_emergency_contact_hash(self,uid,hash):
+        '''
+        Insert emergency contact ipfs hash into supabase
+        '''
+        try:
+            data={
+                "emergency_contacts":hash
+            }
+            response = (self.supabase.table("user")
+                        .update(data)
+                        .eq("user_id", uid)
+                        .execute()
+                        )
+            logging.info(f"Inserted contact hash into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting contact hash into supabase: {e}")
+            return None
+    
+    def get_emergency_contact_hash(self,uid):
+        '''
+        Retrieve emergency contact ipfs hash into supabase
+        '''
+        try:
+            response = (self.supabase.table("user")
+                        .select("emergency_contacts")
+                        .eq("user_id", uid)
+                        .execute()
+                        )
+            logging.info(f"Inserted contact hash into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting contact hash into supabase: {e}")
+            return None
+    
     def insert_ipfs_hash(self,hash):
         '''
         Insert ipfs hash into supabase
@@ -150,7 +185,65 @@ class Supabase:
             logging.error(f"Error fetching geofence alerts from supabase.")
             print(f"Error fetching geofence alerts from supabase.")
             return None
-
+    
+    def insert_sos_alerts(self,alert):
+        '''
+        Insert sos alerts into supabase
+        '''
+        try:
+            response = (self.supabase.table("sos_alerts")
+                        .insert(alert)
+                        .execute()
+                        )
+            logging.info(f"Inserted alerts into supabase.")
+            return response
+        except Exception as e:
+            logging.error(f"Error inserting alerts into supabase: {e}")
+            return None
+    
+    def get_sos_alerts(self,id):
+        '''
+        Retrieve alerts from supabase
+        '''
+        try:
+            response = (
+                        self.supabase.table("sos_alerts")
+                        .select("*")
+                        .eq("id", id)
+                        .execute()
+                        )
+            logging.info(f"Fetched sos alerts from supabase.")
+            alerts=response.data
+            return alerts
+        except:
+            logging.error(f"Error fetching sos alerts from supabase.")
+            print(f"Error fetching sos alerts from supabase.")
+            return None
+    
+    def upload_recordings(self, local_path, file_name):
+        bucket_name = "sos_recordings"
+        try:
+            with open(local_path, 'rb') as f:
+                path_on_supastorage = f"{file_name}"
+                # Upload the file to Supabase storage
+                response = self.supabase.storage.from_(bucket_name).upload(
+                    file=f,
+                    path=path_on_supastorage,
+                    file_options={"content-type": "video/mp4"}
+                )
+                return 1
+        except Exception as e:
+            print(f"Exception occurred during upload: {e}")
+            return 0
+    
+    def get_recording_URL(self,alert_id,user_id):
+        bucket_name = "sos_recordings"
+        try:
+            res = self.supabase.storage.from_(bucket_name).get_public_url(f'./{user_id}_{alert_id}.mp4')
+            return res
+        except Exception as e:
+            print(f"Exception occurred during retrieval: {e}")
+            return None
 
 # Module testing
 if __name__=="__main__":
@@ -164,6 +257,8 @@ if __name__=="__main__":
     response=supabase.fetch_user_data("Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2")
     print(response)
     response=supabase.fetch_user_data("qweLeZ0DO6Z0qtbIs3Ha6eV4fSV2")
+    print(response)
+    response=supabase.get_geofence()
     print(response)
 
 
