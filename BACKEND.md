@@ -35,6 +35,7 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 #### 4. **Get Family Details**
 
+- **ADMIN ACCESS**
 - **Endpoint**: `GET /family_details/{user_id}`
 - **Parameters**:
   - `user_id` (str): User identifier.
@@ -56,6 +57,7 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 #### 6. **Retrieve Incidents**
 
+- **ADMIN ACCESS**
 - **Endpoint**: `GET /retrieve-incident`
 - **Description**: Admin-only endpoint to fetch all incident reports.
 - **Response**:
@@ -74,6 +76,7 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 #### 8. **Add Geofence**
 
+- **ADMIN ACCESS**
 - **Endpoint**: `POST /add-geofence`
 - **Parameters**:
   - `geofence` (Geofence): Geofence details including location and radius.
@@ -85,6 +88,7 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 #### 9. **Get All Geofence Coordinates**
 
+- **ADMIN ACCESS**
 - **Endpoint**: `GET /geofence_coordinates`
 - **Description**: Admin-only endpoint to retrieve all geofence data.
 - **Response**:
