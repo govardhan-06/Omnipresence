@@ -114,6 +114,32 @@ In case of an SOS trigger, users can stream live video from their phone's camera
 - **Response**:
   - **200**: Data successfully retrieved.
   - **500**: Failed to retrieve data.
+- **Example**:
+  ```bash
+  curl -X 'GET' \
+  'http://localhost:8000/family_details/Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2' \
+  -H 'accept: application/json'
+  ```
+  ```bash
+  {
+  "message": "Data retrieved from IPFS",
+  "retrieved_data": [
+    {
+      "ipfs_hash": "Qmaanp9PMJFztQsJ611i9x9s3EvuLjzAoXbwCmGWo2xbGu",
+      "data": {
+        "user_id": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2",
+        "family_members": [
+          {
+            "name": "Govardhan1",
+            "relation": "brother",
+            "phone_number": "9400613758"
+          }
+        ]
+      }
+    }
+  ]
+}
+  ```
 
 #### 5. **Report Incident**
 
