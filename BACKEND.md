@@ -30,7 +30,7 @@ docker run --name omnipresence-backend --network omnipresence-network -p 8000:80
 Now, you will need to set up an IPFS node for handling anonymous incident reporting. Pull the latest IPFS image and run it in the same network:
 
 ```bash
-docker run -d --name ipfs-node --network omnipresence-network -v ipfs_data:/data/ipfs -e IPFS_PROFILE=server -p 4001:4001 -p 5001:5001 ipfs/go-ipfs:latest
+docker run -d --name ipfs_node --network omnipresence-network -v ipfs_data:/data/ipfs -e IPFS_PROFILE=server -p 4001:4001 -p 5001:5001 ipfs/go-ipfs:latest
 ```
 
 ### Verification
