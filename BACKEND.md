@@ -138,7 +138,7 @@ In case of an SOS trigger, users can stream live video from their phone's camera
       }
     }
   ]
-}
+  }
   ```
 
 #### 5. **Report Incident**
@@ -160,6 +160,103 @@ In case of an SOS trigger, users can stream live video from their phone's camera
 - **Response**:
   - **200**: Incident data retrieved from IPFS.
   - **500**: Failed to retrieve incident data.
+- **Example**:
+  ```bash
+  curl -X 'GET' \
+    'http://localhost:8000/retrieve-incident' \
+    -H 'accept: application/json'
+  ```
+  ```bash
+  {
+    "message": "Data retrieved from IPFS",
+    "retrieved_data": [
+      {
+        "ipfs_hash": "QmPXFp8pw2JLfPbY7jLHNc1uUb7aCM7ZNT8ZDm6wZotYUd",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "string",
+          "time_of_incident": "string",
+          "description": "string",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "MJmSNW4r9fanot9rOo2CRukngO13"
+        }
+      },
+      {
+        "ipfs_hash": "QmQXyXSehCfzmmJbJRCYduz2dPtPCnSradHSutrDeb481d",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "VIT Chennai",
+          "time_of_incident": "string",
+          "description": "string",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
+        }
+      },
+      {
+        "ipfs_hash": "QmNQMJRLgeFPYY27UDNP9NjbrnMH8uixQ2uSHQGvtCQTG7",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "Vandalur",
+          "time_of_incident": "string",
+          "description": "string",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
+        }
+      },
+      {
+        "ipfs_hash": "QmdHdrX3nb9sdK4K7NHVnopHsmeXCmK1bdrfseMrjjjNBZ",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "Tambaram",
+          "time_of_incident": "string",
+          "description": "string",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
+        }
+      },
+      {
+        "ipfs_hash": "QmQhiZLweKzoJ89Y22sph7H3vbdcPLTwc5f4WKPt9Wbe1x",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "VIT Chennai",
+          "time_of_incident": "23-02-2024",
+          "description": "big",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
+        }
+      },
+      {
+        "ipfs_hash": "QmQhiZLweKzoJ89Y22sph7H3vbdcPLTwc5f4WKPt9Wbe1x",
+        "data": {
+          "incident_type": "Harassment",
+          "location": "VIT Chennai",
+          "time_of_incident": "23-02-2024",
+          "description": "big",
+          "urgency_level": "string",
+          "witnesses": "string",
+          "additional_comments": "string",
+          "reported_by": "anonymous",
+          "uid": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
+        }
+      }
+    ]
+  }
+  ```
 
 #### 7. **Update User Location**
 
@@ -182,6 +279,22 @@ In case of an SOS trigger, users can stream live video from their phone's camera
   - **200**: Geofence added successfully.
   - **400**: Failed to add geofence.
   - **500**: Validation error.
+- **Example**
+  ```bash
+  curl -X 'POST' \
+  'http://localhost:8000/add-geofence' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "location": "VIT Chennai",
+  "radius_meters": 10
+  }'
+  ```
+  ```bash
+  {
+  "message": "Geofence added successfully"
+  }
+  ```
 
 #### 9. **Get All Geofence Coordinates**
 
@@ -191,6 +304,67 @@ In case of an SOS trigger, users can stream live video from their phone's camera
 - **Response**:
   - **200**: Geofence coordinates retrieved.
   - **500**: Failed to retrieve geofences.
+- **Example**
+  ```bash
+  curl -X 'GET' \
+  'http://localhost:8000/geofence_coordinates' \
+  -H 'accept: application/json'
+  ```
+  ```bash
+  {
+  "geofences": [
+    {
+      "id": 1,
+      "created_at": "2024-10-29T04:29:06.130513+00:00",
+      "center_lat": 12.8422,
+      "center_long": 80.1551,
+      "radius_meters": 500
+    },
+    {
+      "id": 2,
+      "created_at": "2024-10-29T04:29:40.834386+00:00",
+      "center_lat": 12.8921,
+      "center_long": 80.083,
+      "radius_meters": 500
+    },
+    {
+      "id": 3,
+      "created_at": "2024-10-29T04:29:53.000606+00:00",
+      "center_lat": 12.9258,
+      "center_long": 80.1179,
+      "radius_meters": 500
+    },
+    {
+      "id": 4,
+      "created_at": "2024-10-29T08:48:46.871547+00:00",
+      "center_lat": 8.48823,
+      "center_long": 76.9475,
+      "radius_meters": 0
+    },
+    {
+      "id": 5,
+      "created_at": "2024-11-03T17:02:23.856668+00:00",
+      "center_lat": 12.8422,
+      "center_long": 80.1551,
+      "radius_meters": 500
+    },
+    {
+      "id": 6,
+      "created_at": "2024-11-03T17:03:01.03003+00:00",
+      "center_lat": 12.8422,
+      "center_long": 80.1551,
+      "radius_meters": 500
+    },
+    {
+      "id": 7,
+      "created_at": "2024-11-04T14:14:14.261627+00:00",
+      "center_lat": 12.8422,
+      "center_long": 80.1551,
+      "radius_meters": 10
+    }
+  ]
+  }
+  ```
 
 #### 10. **Get Safe Route**
 
@@ -219,6 +393,7 @@ In case of an SOS trigger, users can stream live video from their phone's camera
 
 #### 12. **Retrieve SOS Alert Data**
 
+- **ADMIN ACCESS**
 - **Endpoint**: `GET /sos-alert/{user_id}/{alert_id}`
 - **Parameters**:
   - `user_id` (str): User identifier.
@@ -227,6 +402,22 @@ In case of an SOS trigger, users can stream live video from their phone's camera
 - **Response**:
   - **200**: SOS data retrieved.
   - **404**: Alert not found.
+- **Example**
+  ```bash
+  curl -X 'GET' \
+  'http://localhost:8000/sos-alert/Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2/7' \
+  -H 'accept: application/json'
+  ```
+  ```bash
+  {
+  "id": 7,
+  "created_at": "2024-11-01T15:06:47.225926+00:00",
+  "user_id": "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2",
+  "latitude": 12.49,
+  "longitude": 78.89,
+  "stream_url": "https://pdsutnpamchgkqgrcujg.supabase.co/storage/v1/object/public/sos_recordings/./Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2_7.mp4?"
+  }
+  ```
 
 #### 13. **Live Stream SOS Alert**
 
