@@ -17,15 +17,18 @@ class OpenRouteService:
         Calculate route from start to end while avoiding high-risk areas.
         """
         try:
-            url = f"https://api.openrouteservice.org/v2/directions/driving-car"
+            url = "https://api.openrouteservice.org/v2/directions/driving-car"
             headers = {"Authorization": self.api_key}
             params = {
                 "start": f"{start_coords[1]},{start_coords[0]}",  # lon, lat
                 "end": f"{end_coords[1]},{end_coords[0]}",
             }
-            response = requests.get(url, headers=headers, params=params)
-            response.raise_for_status()
 
+            # Send the request to OpenRouteService
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()  # Raise an error for HTTP errors
+
+            # Parse the JSON response
             route = response.json()
 
             # Analyze and remove high-risk waypoints from the route
@@ -33,7 +36,11 @@ class OpenRouteService:
 
             return safe_route
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as http_err:
+            raise customException(http_err)
+        except requests.exceptions.RequestException as req_err:
+            raise customException(req_err)
+        except Exception as e:
             raise customException(e)
 
     def filter_safe_route(self, coordinates):

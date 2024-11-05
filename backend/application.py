@@ -12,16 +12,18 @@ from pydantic import BaseModel, ConfigDict,  ValidationError
 from typing import Optional
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 from enum import Enum
-import ipfshttpclient, json, requests
+import json, requests
 from src.geofences import is_within_geofence, has_alert_been_sent, mark_alert_as_sent, get_lat_long_opencage
 from src.sos_workflow import notify_contacts
 from src.safe_route import OpenRouteService
 from typing import List
+from src.pinata_config import Pinata
 
 app = FastAPI()
 firebase=Firebase()
 supabase=Supabase()
 ors=OpenRouteService()
+pinata=Pinata()
 
 # Configure CORS
 app.add_middleware(
@@ -106,7 +108,6 @@ async def login_or_register(token:str):
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-family_details_db={}
 
 @app.post("/family_details")
 async def add_family_details(user_id: str, family_members: List[FamilyMember]):
@@ -120,21 +121,18 @@ async def add_family_details(user_id: str, family_members: List[FamilyMember]):
         "family_members": family_member_dicts
     }
 
-    # Convert to JSON string
-    data_json = json.dumps(data_dict)
-
-    response = requests.post("http://127.0.0.1:5001/api/v0/add", files={"file": data_json})
+    response = pinata.upload_to_pinata(data_dict)
 
     if response.status_code == 200:
-        res = response.json()["Hash"]  # IPFS returns a hash for the stored data
-        # Add the hash to the database
-        if(supabase.insert_emergency_contact_hash(user_id,res)):
-            return JSONResponse(content={"message": "Family details added successfully"}, status_code=200)
-        else:
-            return JSONResponse(content={"message":"Failed to add family details to supabase"},status_code=500)
-    
+            # Parse the JSON response
+            res = response.json()["IpfsHash"]  # IPFS returns a hash for the stored data
+            # Add the hash to the database
+            if(supabase.insert_emergency_contact_hash(user_id,res)):
+                return JSONResponse(content={"message": "Family details added successfully","response":res}, status_code=200)
+            else:
+                return JSONResponse(content={"message":"Failed to add family details to supabase"},status_code=500)
     else:
-        return JSONResponse(content={"message":"Failed to add family details to IPFS"},status_code=500)
+        return JSONResponse(content={"message":"Failed to add family details to Pinata","error":response.text,"pinata_status_code":response.status_code},status_code=500)
 
 @app.get("/family_details/{user_id}")
 async def get_family_details(user_id: str):
@@ -149,11 +147,11 @@ async def get_family_details(user_id: str):
     # Iterate through each hash and retrieve data from IPFS
     for record in res.data:
         ipfs_hash = record["emergency_contacts"]
-        retrieved_response = requests.post(f"http://127.0.0.1:5001/api/v0/cat?arg={ipfs_hash}")
+        retrieved_response = pinata.get_data_from_ipfs(ipfs_hash)
         
         # Check if data retrieval was successful
         if retrieved_response.status_code == 200:
-            data_dict = json.loads(retrieved_response.text)
+            data_dict = retrieved_response.json()
             retrieved_data.append({
                 "ipfs_hash": ipfs_hash,
                 "data": data_dict
@@ -162,32 +160,35 @@ async def get_family_details(user_id: str):
             retrieved_data.append({
                 "ipfs_hash": ipfs_hash,
                 "data": "Failed to retrieve data",
-                "status_code": retrieved_response.status_code
+                "status_code": retrieved_response.status_code,
+                "error": retrieved_response.text
             })
 
     # Return all retrieved data in a single JSON response
     return JSONResponse(content={"message": "Data retrieved from IPFS", "retrieved_data": retrieved_data}, status_code=200)
 
 @app.post("/report-incident")
-async def report_incident(uid:str,incident: Incident):
+async def report_incident(incident: Incident,uid:Optional[str]=None):
     '''
     Crowdsourcing of incidents
     '''
     # Convert to JSON string
     data_dict = incident.model_dump()
     location=data_dict["location"]
-    data_dict["uid"]=uid
+    print(data_dict)
+    try:
+        if data_dict["uid"]:
+            pass
+    except:
+        data_dict["uid"]=None
 
-    data_json = json.dumps(data_dict)
-    
-    # Add JSON data to IPFS
-    response = requests.post("http://127.0.0.1:5001/api/v0/add", files={"file": data_json})
+    response = pinata.upload_to_pinata(data_dict)
 
     geofence=get_lat_long_opencage(location)
     geofence["radius_meters"]=500
     
     if response.status_code == 200:
-        res = response.json()["Hash"]  # IPFS returns a hash for the stored data
+        res = response.json()["IpfsHash"]  # IPFS returns a hash for the stored data
         # Add the hash to the database
         if(supabase.insert_ipfs_hash(res)):
             if(supabase.insert_geofence(geofence)):
@@ -198,8 +199,8 @@ async def report_incident(uid:str,incident: Incident):
             return JSONResponse(content={"message":"Failed to insert hash to supabase"},status_code=500)
 
     else:
-        print("Failed to add data to IPFS:", response.status_code)
-        return JSONResponse(content={"message":"Failed to insert data to IPFS","ipfs_hash": None},status_code=500)
+        print("Failed to add data to Pinata:", response.status_code)
+        return JSONResponse(content={"message":"Failed to insert data to Pinata","ipfs_hash": None,"error":response.text,"pinata_status_code":response.status_code},status_code=500)
 
 @app.get("/retrieve-incident")
 async def retrieve_incident():
@@ -214,21 +215,28 @@ async def retrieve_incident():
     # Iterate through each hash and retrieve data from IPFS
     for record in res.data:
         ipfs_hash = record["hash"]
-        retrieved_response = requests.post(f"http://127.0.0.1:5001/api/v0/cat?arg={ipfs_hash}")
-        
-        # Check if data retrieval was successful
-        if retrieved_response.status_code == 200:
-            data_dict = json.loads(retrieved_response.text)
-            retrieved_data.append({
-                "ipfs_hash": ipfs_hash,
-                "data": data_dict
-            })
-        else:
-            retrieved_data.append({
-                "ipfs_hash": ipfs_hash,
-                "data": "Failed to retrieve data",
-                "status_code": retrieved_response.status_code
-            })
+        try:
+            retrieved_response = pinata.get_data_from_ipfs(ipfs_hash)
+            # Check if data retrieval was successful
+            if retrieved_response.status_code == 200:
+                data_dict = retrieved_response.json()
+                retrieved_data.append({
+                    "ipfs_hash": ipfs_hash,
+                    "data": data_dict
+                })
+            else:
+                retrieved_data.append({
+                    "ipfs_hash": ipfs_hash,
+                    "data": "Failed to retrieve data",
+                    "status_code": retrieved_response.status_code,
+                    "error": retrieved_response.text
+                })
+        except ConnectionError as e:
+            # Handle the connection error
+            raise HTTPException(status_code=500, detail="Failed to connect to IPFS")
+        except Exception as e:
+            # Handle any other exceptions
+            raise HTTPException(status_code=500, detail=str(e))
 
     # Return all retrieved data in a single JSON response
     return JSONResponse(content={"message": "Data retrieved from IPFS", "retrieved_data": retrieved_data}, status_code=200)
