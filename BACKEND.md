@@ -8,67 +8,41 @@ This API documentation describes endpoints for the **Omnipresence Project**, a w
 
 This section provides instructions for setting up the Docker environment for the `govardhan06/omnipresence-backend` image. Follow these steps to create a network, pull the necessary images, and run the containers.
 
-### Step 1: Create Docker Network
-
-First, create a Docker network that will allow your containers to communicate with each other:
+### Pull the Omnipresence backend image:
 
 ```bash
-docker network create omnipresence-network
+docker pull govardhan06/omnipresence-backend:v2
+docker run -p 8000:8000 govardhan06/omnipresence-backend:v2
 ```
-
-### Step 2: Pull and Run the Omnipresence Backend Image
-
-Next, pull the Omnipresence backend image and run it within the created network:
-
-```bash
-docker pull govardhan06/omnipresence-backend:v1
-docker run --name omnipresence-backend --network omnipresence-network govardhan06/omnipresence-backend:v1
-```
-
-### Step 3: Pull and Run the IPFS Node
-
-Now, you will need to set up an IPFS node for handling anonymous incident reporting. Pull the latest IPFS image and run it in the same network:
-
-```bash
-docker run -d --name ipfs-node --network omnipresence-network -v ipfs_data:/data/ipfs -e IPFS_PROFILE=server ipfs/go-ipfs:latest
-```
-
-### Verification
-
-To verify that both containers are running correctly within the `omnipresence-network`, you can use the following command:
-
-```bash
-docker ps
-```
-
-This will display a list of running containers, including the `omniverse-backend` and `ipfs-node`.
-
-### Notes
-
-- Ensure Docker is installed and running on your machine before executing these commands.
-- The endpoints must be triggered only after setting-up both of these images
 
 ---
 
 ## Features
+
 - `govardhan06/omnipresence-backend:v1`
 
 ### 1. Anonymous Incident Reporting with IPFS Integration
+
 Users can report incidents anonymously through the backend, ensuring privacy and security. Reports are stored using IPFS (InterPlanetary File System), providing a decentralized and secure way to handle sensitive data without compromising user identity.
 
 ### 2. Point-to-Point Safe Routing
+
 The backend facilitates safe routing by calculating and suggesting the safest paths based on real-time data. Users can input their destination, and the system will provide optimized routes that avoid high-risk areas, ensuring a safer travel experience.
 
 ### 3. Emergency Contact Setup
+
 Users can configure emergency contacts within the application. In case of an emergency, the system can quickly notify these contacts, ensuring rapid communication and support during critical situations.
 
 ### 4. WhatsApp API Integration
+
 The backend integrates with the WhatsApp API, allowing users to send alerts and notifications directly to their contacts via WhatsApp. This feature ensures timely communication in emergencies, leveraging a widely used messaging platform.
 
 ### 5. SOS Trigger and Corresponding Chain of Events
+
 Users can activate an SOS trigger with a simple action. Upon activation, a predefined chain of events is initiated, including notifications to emergency contacts, location sharing, and alerting local authorities if necessary, ensuring immediate assistance.
 
 ### 6. Streaming of Video from Phone on SOS Trigger
+
 In case of an SOS trigger, users can stream live video from their phone's camera to the backend. This feature provides real-time visual information to emergency contacts and responders, enhancing situational awareness and response effectiveness.
 
 ---
