@@ -2,8 +2,8 @@ import os,sys
 from supabase import create_client, Client
 from dataclasses import dataclass
 from dotenv import load_dotenv
-from backend.src.utils.exception import customException
-from backend.src.utils.logger import logging
+from src.utils.exception import customException
+from src.utils.logger import logging
 
 @dataclass
 class Supabase_config:
