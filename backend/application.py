@@ -17,7 +17,7 @@ from src.geofences import is_within_geofence, has_alert_been_sent, mark_alert_as
 from src.sos_workflow import notify_contacts
 from src.safe_route import OpenRouteService
 from typing import List
-from src.pinata_config import Pinata
+from src.services.pinata_config import Pinata
 
 app = FastAPI()
 firebase=Firebase()
@@ -287,11 +287,17 @@ async def get_geofence_coordinates():
     geofences = supabase.get_geofence()
     return JSONResponse(content={"geofences": geofences}, status_code=200)
 
-@app.get("/safe_route")
-async def safe_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float):
+@app.post("/safe_route")
+async def safe_route(start:str, end:str):
     """
     To get a safe route between start and end points.
     """
+    loc=get_lat_long_opencage(start)
+    start_lat=loc["center_lat"]
+    start_lon=loc["center_long"]
+    loc=get_lat_long_opencage(end)
+    end_lat=loc["center_lat"]
+    end_lon=loc["center_long"]
     start_coords = (start_lat, start_lon)
     end_coords = (end_lat, end_lon)
     
@@ -331,20 +337,21 @@ async def get_sos_data(user_id:str, alert_id: int):
     Retrieves SOS alert data from the Supabase database.
     '''
     res=supabase.get_sos_alerts(alert_id)[0]
-    rec_url=supabase.get_recording_URL(alert_id,user_id)
-    res["stream_url"]=rec_url
+    rec_url,audio_url=supabase.get_recording_URL(alert_id,user_id)
+    res["video_stream_url"]=rec_url
+    res["audio_stream_url"]=audio_url
     if not res:
         raise HTTPException(status_code=404, detail="No alerts found")
     
     return res
 
-@app.websocket("/ws/stream/{user_id}/{alert_id}")
-async def stream_media(websocket: WebSocket, user_id: str, alert_id: int):
+@app.websocket("/ws/stream/{user_id}/{alert_id}/{file_format}")
+async def stream_media(websocket: WebSocket, user_id: str, alert_id: int, file_format:str):
     """
     WebSocket endpoint to stream media and upload to Supabase.
     """
     await websocket.accept()
-    file_name = f"{user_id}_{alert_id}.mp4"
+    file_name = f"{user_id}_{alert_id}.{file_format}"
     local_path = f"./{file_name}"
 
     try:

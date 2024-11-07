@@ -223,13 +223,25 @@ class Supabase:
     def upload_recordings(self, local_path, file_name):
         bucket_name = "sos_recordings"
         try:
+            # Determine the file extension to set content type
+            file_extension = local_path.split('.')[-1].lower()
+            
+            # Set content type based on file extension
+            if file_extension in ['mp3', 'wav', 'flac']:  # Common audio file types
+                content_type = "audio/mp3"
+            elif file_extension == 'mp4':  # Video file type
+                content_type = "video/mp4"
+            else:
+                print("Unsupported file type.")
+                return 0
+            
             with open(local_path, 'rb') as f:
                 path_on_supastorage = f"{file_name}"
                 # Upload the file to Supabase storage
                 response = self.supabase.storage.from_(bucket_name).upload(
                     file=f,
                     path=path_on_supastorage,
-                    file_options={"content-type": "video/mp4"}
+                    file_options={"content-type": content_type}
                 )
                 return 1
         except Exception as e:
@@ -239,8 +251,9 @@ class Supabase:
     def get_recording_URL(self,alert_id,user_id):
         bucket_name = "sos_recordings"
         try:
-            res = self.supabase.storage.from_(bucket_name).get_public_url(f'./{user_id}_{alert_id}.mp4')
-            return res
+            res1 = self.supabase.storage.from_(bucket_name).get_public_url(f'./{user_id}_{alert_id}.mp4')
+            res2 = self.supabase.storage.from_(bucket_name).get_public_url(f'./{user_id}_{alert_id}.mp3')
+            return res1, res2
         except Exception as e:
             print(f"Exception occurred during retrieval: {e}")
             return None
