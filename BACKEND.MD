@@ -11,15 +11,15 @@ This section provides instructions for setting up the Docker environment for the
 ### Pull the Omnipresence backend image:
 
 ```bash
-docker pull govardhan06/omnipresence-backend:v2
-docker run -p 8000:8000 govardhan06/omnipresence-backend:v2
+docker pull govardhan06/omnipresence-backend:v4
+docker run -p 8000:8000 govardhan06/omnipresence-backend:v4
 ```
 
 ---
 
 ## Features
 
-- `govardhan06/omnipresence-backend:v1`
+- `govardhan06/omnipresence-backend`
 
 ### 1. Anonymous Incident Reporting with IPFS Integration
 
