@@ -1,4 +1,4 @@
-# Sentinel360
+# Omnipresence
 
 An ecosystem which works towards women saftey and empowerment. This ecosystem is powered by several products whose core objective is women safety.
 
