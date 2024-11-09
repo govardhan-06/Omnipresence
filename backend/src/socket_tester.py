@@ -45,5 +45,5 @@ user_id = "tqpaxLCuYPebJDaqXjxXtMUlg1C3"
 username = "Meera"
 latitude = 12.59
 longitude = 78.89
-audio_file_path = "../testaudio.wav"
+audio_file_path = "../audio/testaudio.wav"
 asyncio.run(test_audio_stream(user_id, username, latitude, longitude, audio_file_path))

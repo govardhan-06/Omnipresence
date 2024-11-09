@@ -424,7 +424,6 @@ async def stream_media(websocket: WebSocket, user_id: str, latitude: float, long
 
                     # Process the audio only when the file is ready
                     res = audio.process_audio(local_path)
-                    print("Processing successfull")
                     print(res)
 
                     if res == 'Scream':
