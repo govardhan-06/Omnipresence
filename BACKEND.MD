@@ -11,8 +11,8 @@ This section provides instructions for setting up the Docker environment for the
 ### Pull the Omnipresence backend image:
 
 ```bash
-docker pull govardhan06/omnipresence-backend:v4
-docker run -p 8000:8000 govardhan06/omnipresence-backend:v4
+docker pull govardhan06/omnipresence-backend:v5
+docker run -p 8000:8000 govardhan06/omnipresence-backend:v5
 ```
 
 ---
