@@ -176,12 +176,69 @@ In case of an SOS trigger, users can stream live video from their phone's camera
   - **200**: SOS data retrieved.
   - **404**: Alert not found.
 
-#### 13. **Live Stream SOS Alert**
+#### 13. **WebSocket Endpoint: Stream Media (Video)**
 
-- **Endpoint**: `WebSocket /ws/stream/{user_id}/{alert_id}`
+- **Endpoint**: `/ws/stream/{user_id}/{alert_id}/{file_format}`
 - **Parameters**:
-  - `user_id` (str): User identifier.
-  - `alert_id` (int): SOS alert identifier.
-- **Description**: WebSocket for real-time media streaming related to an SOS alert.
+  - **user_id** (Path Parameter): A unique identifier for the user.
+  - **alert_id** (Path Parameter): A unique identifier for the alert associated with the media.
+  - **file_format** (Path Parameter): The format of the file : mp4
+- **Description**: This endpoint handles streaming media (e.g., video) from the frontend to the backend. The media is received in real-time and saved to a file on the server, then uploaded to Supabase.
 - **Response**:
   - Real-time stream initiated on connection.
+- **Flow**
+  1. The WebSocket connection is accepted upon connection to this endpoint.
+  2. A new file is created on the server using `user_id` and `alert_id` as part of the filename (e.g., `user123_456.mp4`).
+  3. The media is streamed and saved to this file in chunks.
+  4. After every chunk is received, a success message is sent to the frontend: 
+     ```json
+     {"message": "Video transmitted successfully"}
+     ```
+  5. If the WebSocket connection is disconnected, the server logs this and stops the stream.
+  6. If any error occurs, the WebSocket connection is closed, and an error message is sent to the frontend:
+     ```json
+     {"message": "Failed to transmit video"}
+     ```
+- **Error Handling**
+  - The server will send a failure message if there is an error during file processing or transmission.
+  - In case of disconnection, the WebSocket closes gracefully.
+
+#### 14. **WebSocket Endpoint: Stream Audio and Process for SOS Detection**
+
+- **Endpoint**: `/ws/audio-stream/{user_id}/{username}/{latitude}/{longitude}`
+- **Description**: This endpoint streams real-time audio from the user's device to the backend for analysis. If a potential SOS trigger (e.g., scream) is detected in the audio, the server sends a notification to the frontend, requesting confirmation from the user. Based on the user's response, an SOS alert may be triggered.
+- **Parameters**
+  - **user_id** (Path Parameter): A unique identifier for the user.
+  - **username** (Path Parameter): The username of the user sending the audio stream.
+  - **latitude** (Path Parameter): The latitude of the user's location.
+  - **longitude** (Path Parameter): The longitude of the user's location.
+- **Flow**
+  1. The WebSocket connection is accepted upon connection to this endpoint.
+  2. The server begins receiving and saving the incoming audio stream in `.wav` format.
+  3. The audio data is saved in chunks, and each chunk is written to the file in real-time.
+  4. Once the file is ready, it is processed using the `audio.process_audio()` function.
+  5. If the audio is determined to be a potential SOS (e.g., a scream):
+     - A notification is sent to the frontend:
+       ```json
+       {"sos_triggered": null, "message": "Potential SOS detected! Please confirm if help is needed."}
+       ```
+     - The frontend responds with a confirmation (`trigger_sos` or `no_sos`).
+     - If SOS is confirmed, an SOS alert is triggered and sent back to the frontend with a unique `alert_id`:
+       ```json
+       {"sos_triggered": true, "alert_id": 123, "message": "SOS alert has been triggered, help is on the way!"}
+       ```
+     - If no SOS is confirmed, the frontend receives a message indicating that everything is safe:
+       ```json
+       {"sos_triggered": false, "message": "No SOS triggered. Everything is safe."}
+       ```
+  6. If no SOS trigger is detected, the following message is sent to the frontend:
+     ```json
+     {"sos_triggered": false, "message": "Everything is safe."}
+     ```
+  7. If the WebSocket connection is disconnected, the server logs the disconnection and stops the stream.
+- **Error Handling**
+  - If there is an error processing the audio or an issue during the streaming, the WebSocket connection is closed and an error message is returned to the frontend:
+    ```json
+    {"message": "Error writing file: [error details]"}
+    ```
+  - If the audio analysis does not detect any SOS signals, the frontend is notified that everything is safe.
