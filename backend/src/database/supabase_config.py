@@ -30,10 +30,10 @@ class Supabase:
                         .execute()
                         )
             logging.info(f"Inserted data into supabase.")
-            return response
+            return (response.data)[0]
         except Exception as e:
             logging.error(f"Error inserting data into supabase: {e}")
-            return "user already exists"
+            return {"message":"user already exists","status_code":500}
     
     def fetch_user_data(self,uid):
         '''
@@ -47,10 +47,10 @@ class Supabase:
                         .execute()
                         )
             logging.info(f"Fetched user data from supabase.")
-            return response
+            return (response.data)[0]
         except:
             logging.error(f"Error fetching user data from supabase.")
-            return None
+            return {"message":"user not found","status_code":404}
     
     def insert_emergency_contact_hash(self,uid,hash):
         '''

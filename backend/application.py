@@ -108,32 +108,37 @@ async def home():
     '''
     return RedirectResponse(url="/docs")
 
-@app.post("/login-or-register")
-async def login_or_register(token:str):
+@app.post("/insert_user")
+async def insert_user(email: str, uid: str):
     '''
-    This function is used to login or register a user using firebase ID Token.
-    Not Tested
+    This function is used to insert user data into the database.
     '''
     try:
-        # Check if the token is valid
-        user=firebase.verify_user_token(token)
-        response=supabase.fetch_user_data(user["uid"])
-        if response:
-            return JSONResponse(content={"message": "User verified successfully"}, status_code=200)
-        else:
-            # If the user does not exist, create a new user
-            supabase.insert_user_data(user["uid"],user["email"])
-            return JSONResponse(content={"message": "User created successfully"}, status_code=200)
-    
-    except ValueError:
-        # This could happen if the token is invalid or expired
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    except Exception as e:
-        # Log the exception for debugging
-        print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        response=supabase.insert_user_data(uid,email)
+        try:
+            if response["status_code"]:
+                return JSONResponse(content=response,status_code=400)
+        except:
+            return JSONResponse(content=response,status_code=200)
+            
+    except:
+        return JSONResponse(content={"error": "Failed to insert user data"},status_code=400)
 
+@app.post("/fetch_user")
+async def fetch_user(uid: str):
+    '''
+    This function is used to fetch user data from the database.
+    '''
+    try:
+        response = supabase.fetch_user_data(uid)
+        try:
+            if response["status_code"]:
+                return JSONResponse(content=response,status_code=400)
+        except:
+            return JSONResponse(content=response,status_code=200)
+    except Exception as e:
+        print(e)
+        return JSONResponse(content={"error": "Failed to fetch user data"},status_code=400)
 
 @app.post("/family_details")
 async def add_family_details(user_id: str, family_members: List[FamilyMember]):
