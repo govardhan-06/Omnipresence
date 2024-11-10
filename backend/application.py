@@ -17,13 +17,16 @@ from src.geofences import is_within_geofence, has_alert_been_sent, mark_alert_as
 from src.sos_workflow import notify_contacts
 from src.safe_route import OpenRouteService
 from typing import List
-from src.pinata_config import Pinata
+from src.services.pinata_config import Pinata
+from src.pipelines.audio_processing import Audio_Processing
+import asyncio
 
 app = FastAPI()
 firebase=Firebase()
 supabase=Supabase()
 ors=OpenRouteService()
 pinata=Pinata()
+audio=Audio_Processing()
 
 # Configure CORS
 app.add_middleware(
@@ -74,6 +77,29 @@ class FamilyMember(BaseModel):
     name: str
     relation: str
     phone_number: str
+
+async def trigger_sos_logic(user_id: str, latitude: float, longitude: float, username: str, background_tasks: BackgroundTasks):
+    """
+    Triggers an SOS event logic (insert alert data and send notifications).
+    """
+    alert_data = {
+        "user_id": user_id,
+        "latitude": latitude,
+        "longitude": longitude,
+    }
+    sos_alert_id = (supabase.insert_sos_alerts(alert_data)).data
+    sos_alert_id = sos_alert_id[0]["id"]
+    
+    user = {
+        "user_id": user_id,
+        "username": username,
+        "latitude": latitude,
+        "longitude": longitude
+    }
+    
+    await notify_contacts(user)
+    
+    return sos_alert_id
 
 @app.get("/")
 async def home():
@@ -287,11 +313,17 @@ async def get_geofence_coordinates():
     geofences = supabase.get_geofence()
     return JSONResponse(content={"geofences": geofences}, status_code=200)
 
-@app.get("/safe_route")
-async def safe_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float):
+@app.post("/safe_route")
+async def safe_route(start:str, end:str):
     """
     To get a safe route between start and end points.
     """
+    loc=get_lat_long_opencage(start)
+    start_lat=loc["center_lat"]
+    start_lon=loc["center_long"]
+    loc=get_lat_long_opencage(end)
+    end_lat=loc["center_lat"]
+    end_lon=loc["center_long"]
     start_coords = (start_lat, start_lon)
     end_coords = (end_lat, end_lon)
     
@@ -331,20 +363,21 @@ async def get_sos_data(user_id:str, alert_id: int):
     Retrieves SOS alert data from the Supabase database.
     '''
     res=supabase.get_sos_alerts(alert_id)[0]
-    rec_url=supabase.get_recording_URL(alert_id,user_id)
-    res["stream_url"]=rec_url
+    rec_url,audio_url=supabase.get_recording_URL(alert_id,user_id)
+    res["video_stream_url"]=rec_url
+    res["audio_stream_url"]=audio_url
     if not res:
         raise HTTPException(status_code=404, detail="No alerts found")
     
     return res
 
-@app.websocket("/ws/stream/{user_id}/{alert_id}")
-async def stream_media(websocket: WebSocket, user_id: str, alert_id: int):
+@app.websocket("/ws/stream/{user_id}/{alert_id}/{file_format}")
+async def stream_media(websocket: WebSocket, user_id: str, alert_id: int, file_format:str):
     """
     WebSocket endpoint to stream media and upload to Supabase.
     """
     await websocket.accept()
-    file_name = f"{user_id}_{alert_id}.mp4"
+    file_name = f"{user_id}_{alert_id}.{file_format}"
     local_path = f"./{file_name}"
 
     try:
@@ -354,29 +387,88 @@ async def stream_media(websocket: WebSocket, user_id: str, alert_id: int):
                 try:
                     data = await websocket.receive_bytes()
                     await out_file.write(data)
+                    await websocket.send_json({
+                        "message":"Video transmitted successfully"
+                    })
+                except WebSocketDisconnect:
+                    print("WebSocket connection closed.")
+                    break
+    except Exception as e:
+        await websocket.close()
+        await websocket.send_json({
+                        "message":"Failed to transmit video"
+                    })
+
+@app.websocket("/ws/audio-stream/{user_id}/{username}/{latitude}/{longitude}")
+async def stream_media(websocket: WebSocket, user_id: str, latitude: float, longitude: float, username: str, background_tasks: BackgroundTasks):
+    """
+    WebSocket endpoint to analyze the real-time audio from user device
+    """
+    await websocket.accept()
+    file_name = f"{user_id}.wav"
+    local_path = f"{file_name}"
+
+    try:
+        # Open a file for writing the incoming stream data
+        async with aiofiles.open(local_path, 'wb') as out_file:
+            while True:
+                try:
+                    data = await websocket.receive_bytes()
+                    print("Received data chunk:", len(data))
+
+                    await out_file.write(data)
+
+                    # Ensure the file is flushed and ready for processing
+                    await out_file.flush()
+                    print("Audio file received from client")
+
+                    # Process the audio only when the file is ready
+                    res = audio.process_audio(local_path)
+                    print(res)
+
+                    if res == 'Scream':
+                        # File should only be deleted after it's completely processed
+                        print("SOS detected...")
+
+                        # Send notification to frontend
+                        await websocket.send_json({
+                            "sos_triggered": None,
+                            "message": "Potential SOS detected! Please confirm if help is needed."
+                        })
+
+                        response = await websocket.receive_json()
+                        print("Response from client:", response)
+
+                        if response.get('action') == 'trigger_sos':
+                                    print("SOS action triggered by the client.")
+                                    sos_alert_id = await trigger_sos_logic(user_id, latitude, longitude, username, background_tasks)
+                                    await websocket.send_json({
+                                        "sos_triggered": True,
+                                        "alert_id": sos_alert_id,
+                                        "message": "SOS alert has been triggered, help is on the way!"
+                                    })
+
+                        else:
+                            print("No SOS action from the client.")
+                            await websocket.send_json({
+                                "sos_triggered": False,
+                                "message": "No SOS triggered. Everything is safe."
+                            })
+
+                    else:
+                        print("Safe surroundings...")
+                        # os.remove(local_path)
+                        await websocket.send_json({
+                            "sos_triggered": False,
+                            "message": "Everything is safe."
+                        })
+
                 except WebSocketDisconnect:
                     print("WebSocket connection closed.")
                     break
     except Exception as e:
         await websocket.close()
         return JSONResponse(content={"message": f"Error writing file: {e}"}, status_code=500)
-
-    # Attempt to upload the recording to Supabase after WebSocket closes
-    try:
-        print(f"Attempting to upload {local_path} to Supabase.")
-        upload_success = supabase.upload_recordings(local_path, file_name)
-        if upload_success:
-            os.remove(local_path)  # Delete the local file if uploaded successfully
-            print("Successfully uploaded the file.")
-
-        else:
-            print("Failed to upload the file.")
-    except Exception as e:
-        print(f"Error during upload: {e}")
-    finally:
-        # Close only if the WebSocket connection is open
-        if websocket.client_state == WebSocketState.CONNECTED:
-            await websocket.close()
 
 if __name__=="__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

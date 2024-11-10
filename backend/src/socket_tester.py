@@ -1,19 +1,49 @@
 import asyncio
 import websockets
+import json
 
-async def test_stream(user_id, alert_id):
-    uri = f"ws://localhost:8000/ws/stream/{user_id}/{alert_id}"
-    
-    try:
-        async with websockets.connect(uri, timeout=60) as websocket:  # Increase timeout
-            with open("test_video.mp4", "rb") as video_file:  # Replace with a sample video file
-                while chunk := video_file.read(1024):  # Read file in chunks
-                    await websocket.send(chunk)
-            print("Finished sending video data.")
-    except Exception as e:
-        print(f"Error streaming data: {e}")
+async def test_audio_stream(user_id, username, latitude, longitude, audio_file_path):
+    url = f"ws://localhost:8000/ws/audio-stream/{user_id}/{username}/{latitude}/{longitude}"
 
-user_id = "Z9ZLeZ0DO6Z0qtbIs3Ha6eV4fSV2"
-alert_id = 7
+    async with websockets.connect(url) as websocket:
+        print("WebSocket connection established")
 
-asyncio.run(test_stream(user_id, alert_id))
+        # Read the entire audio file and send to WebSocket
+        try:
+            with open(audio_file_path, 'rb') as audio_file:
+                # Read the entire file into memory
+                audio_data = audio_file.read()
+                await websocket.send(audio_data)
+                print(f"Sent {len(audio_data)} bytes of audio data")
+
+            print("Audio data sent to server")
+
+            # Listening for messages from the server (do not close immediately)
+            while True:
+                response = await websocket.recv()
+                data = json.loads(response)
+                print("Response from server:", data)
+
+                # If SOS is triggered, send confirmation action
+                if data.get("sos_triggered") is None:
+                    print("No SOS triggered. Sending confirmation.")
+                    await websocket.send(json.dumps({"action": "trigger_sos"}))
+                    print("SOS trigger confirmation sent to server")
+
+                # Optional: Close connection after processing is complete (if needed)
+                if data.get("sos_triggered") is not None:
+                    print("Server has processed the audio and responded. Closing connection.")
+                    break  # Exit the loop and close the connection if response is final
+
+        except websockets.exceptions.ConnectionClosed as e:
+            print("WebSocket connection closed:", e)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+# Example call
+user_id = "tqpaxLCuYPebJDaqXjxXtMUlg1C3"
+username = "Meera"
+latitude = 12.59
+longitude = 78.89
+audio_file_path = "../audio/testaudio.wav"
+asyncio.run(test_audio_stream(user_id, username, latitude, longitude, audio_file_path))
