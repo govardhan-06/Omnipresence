@@ -8,6 +8,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:permission_handler/permission_handler.dart'; // Import permission handler
 
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -51,6 +52,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
+  // Request camera permission before app loads
+  await _requestPermissions();
+
   Workmanager().initialize(callbackDispatcher);
   // Register background task for location updates every 3 minutes
   Workmanager().registerPeriodicTask(
@@ -62,6 +66,27 @@ void main() async {
   runApp(const MainApp());
 }
 
+// Function to request camera and location permissions
+Future<void> _requestPermissions() async {
+  // Request camera permission
+  PermissionStatus cameraPermission = await Permission.camera.request();
+  if (cameraPermission.isGranted) {
+    print('Camera permission granted.');
+  } else {
+    print('Camera permission denied or permanently denied.');
+    // Handle denial: show a dialog or redirect to settings
+  }
+
+  // Request location permission as well
+  PermissionStatus locationPermission = await Permission.location.request();
+  if (locationPermission.isGranted) {
+    print('Location permission granted.');
+  } else {
+    print('Location permission denied or permanently denied.');
+    // Handle denial
+  }
+}
+
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
@@ -69,8 +94,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home:
-          AuthCheck(), // AuthCheck decides if the user should go to HomePage or LoginPage
+      home: const AuthCheck(), // AuthCheck decides if the user should go to HomePage or LoginPage
     );
   }
 }

@@ -18,6 +18,8 @@ dependencies:
   latlong2: ^0.9.1
   flutter_map_marker_popup: ^7.0.0
   workmanager: ^0.5.2
+  web_socket_channel: ^3.0.1
+  camera: ^0.10.0
 
 dev_dependencies:
   flutter_test:
