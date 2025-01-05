@@ -4,7 +4,7 @@ An ecosystem which works towards women saftey and empowerment. This ecosystem is
 
 ### Products
 
-- SafeScape
+- SafeScape [Repo](https://github.com/govardhan-06/SafeScape)
 - Mobile Application (to be used while in danger)
 - WearOS Application
 - App for women empowerment content (training videos, counselling etc.) (Planned as future update)
